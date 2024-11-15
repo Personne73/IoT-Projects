@@ -61,4 +61,22 @@ public class CoAPClient extends Thread {
 
         return header;
     }
+
+    public byte[] createCoAPOptions(int delta, String path) {
+        byte[] optionValue = path.getBytes();
+        int len = path.length();
+        byte[] options = new byte[1 + len];
+
+        options[0] = (byte) ((delta << 4) | len); // the delta and the length
+
+        for(int i = 0; i < len; i ++) options[i+1] = optionValue[i]; // add the option value after the header
+
+        return options;
+    }
+
+    public byte[] createCoAPPayload() {
+        byte[] payload = new byte[1];
+
+        return payload;
+    }
 }
