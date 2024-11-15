@@ -1,5 +1,4 @@
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.ServerSocket;
@@ -60,7 +59,6 @@ public class RestServer extends Thread {
                                 "\r\n" +
                                 "Current time: " + time;
                     } else if (path.equalsIgnoreCase("/sensor")) {
-                        String time = "" + System.currentTimeMillis();
                         response = "HTTP/1.1 200 OK\r\n" +
                                 "Content-Type: text/html\r\n" +
                                 "\r\n" +
