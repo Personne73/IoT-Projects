@@ -140,46 +140,16 @@ public class CoAPClient extends Thread {
             String response = new String(responsePacket.getData(), 0, responsePacket.getLength()).trim();
             System.out.println("Response from the server - See detail in Wireshark:\n" + response);
 
+            // byte[] responseData = responsePacket.getData();
+            // int length = responsePacket.getLength();
+    
+            // parseCoAPMessage(responseData, length);
+
             socket.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
-    // public void sendMessage(byte[] message) {
-    //     try {
-    //         // sending of the message
-    //         DatagramPacket packet = new DatagramPacket(message, message.length, serverAddress, COAP_PORT);
-    //         socket.send(packet);
-    
-    //         // receiving of the message
-    //         byte[] buffer = new byte[1024];
-    //         DatagramPacket responsePacket = new DatagramPacket(buffer, buffer.length);
-    //         socket.setSoTimeout(2000); // Timeout de 2 secondes
-    
-    //         try {
-    //             socket.receive(responsePacket);
-    //         } catch (java.net.SocketTimeoutException e) {
-    //             System.out.println("No response from the server. It may not be running.");
-    //             socket.close();
-    //             return;
-    //         }
-    
-    //         if (responsePacket.getLength() == 0) {
-    //             System.out.println("Empty response received from the server.");
-    //             socket.close();
-    //             return;
-    //         }
-    
-    //         // response
-    //         byte[] responseData = responsePacket.getData();
-    //         int length = responsePacket.getLength();
-    
-    //         parseCoAPMessage(responseData, length);
-    //         socket.close();
-    //     } catch (Exception e) {
-    //         e.printStackTrace();
-    //     }
-    // }
     
     private void parseCoAPMessage(byte[] data, int length) {
         // 1. En-tête
