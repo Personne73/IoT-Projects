@@ -37,13 +37,17 @@ public class CoAPClient extends Thread {
     public CoAPClient(){
         try {
             socket = new DatagramSocket();
-            serverAddress = InetAddress.getByName("californium.eclipseprojects.io");
+            //serverAddress = InetAddress.getByName("californium.eclipseprojects.io");
+            serverAddress = InetAddress.getByName("coap.me");
             //serverAddress = InetAddress.getByName("localhost");
             messageId = new Random().nextInt(65536);
-            prevDelta = 0;
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    public void shutdown() {
+        socket.close();
     }
 
     private int getNextMessageId() {
@@ -55,9 +59,11 @@ public class CoAPClient extends Thread {
         // & OxFF pour rendre non signé 1 byte
         // header + token = 1octect = 8bits = 1byte
         byte[] header = new byte[4]; // byte array
+
         // it's the first byte = 8 bits
         header[0] = 80; // Version 01, Type NON, Token Length = 0 --> 0101 0000
-        header[1] = (byte) code; // Code sur 8bits = 1byte
+        header[1] = (byte) code; // Code on 8bits = 1byte
+
         // Message ID = 16bits = 2byte
         int currentMessageId = messageId;
         header[2] = (byte) ((currentMessageId >> 8) & 0xFF);
@@ -67,18 +73,23 @@ public class CoAPClient extends Thread {
         return header;
     }
 
-    public byte[] createCoAPOptions(int delta, String path) {
+    public byte[] createCoAPOptions(int delta, byte[] path) {
+        // calculate the delta towards the previous options
         int delta2 = delta - prevDelta;
         prevDelta = delta;
-        byte[] optionValue = path.getBytes();
-        int len = path.length();
+
+        int len = path.length;
         byte[] options = new byte[1 + len];
 
         options[0] = (byte) ((delta2 << 4) | len); // the delta and the length
 
-        for(int i = 0; i < len; i ++) options[i+1] = optionValue[i]; // add the option value after the header
+        for(int i = 0; i < len; i ++) options[i+1] = path[i]; // add the option value after the header
 
         return options;
+    }
+
+    public byte[] createCoAPOptions(int delta, String path) {
+        return createCoAPOptions(delta, path.getBytes());
     }
 
     public byte[] createCoAPPayload(String pl) {
@@ -93,6 +104,15 @@ public class CoAPClient extends Thread {
         return payload;
     }
 
+    public byte[] mergeByteArray(byte[] arrayA, byte[] arrayB) {
+        byte[] res = new byte[arrayA.length + arrayB.length];
+
+        System.arraycopy(arrayA, 0, res, 0, arrayA.length);
+        System.arraycopy(arrayB, 0, res, arrayA.length, arrayB.length);
+
+        return res;
+    }
+
     public byte[] createCoAPMessage(byte[] header, byte[] options, byte[] payload) {
         byte[] message = new byte[header.length + options.length + payload.length];
 
@@ -103,11 +123,61 @@ public class CoAPClient extends Thread {
         return message;
     }
 
+    /**
+     * Construct a CoAP GET request
+     * @param path the URI Path
+     * @return the coap message
+     */
     public byte[] createGETRequest(String path) {
-        byte[] header = createCoAPHeader(1);
-        byte[] options = createCoAPOptions(11, path);
+        // reset delta before new request
+        prevDelta = 0;
 
-        return createCoAPMessage(header, options, new byte[0]);
+        byte[] header = createCoAPHeader(1);
+        byte[] uriPathOption = createCoAPOptions(11, path);
+
+        return createCoAPMessage(header, uriPathOption, new byte[0]);
+    }
+
+    public byte[] createPOSTRequest(String path, String pl) {
+        // reset delta before new request
+        prevDelta = 0;
+
+        byte[] header = createCoAPHeader(2);
+
+        // Options
+        byte[] uriPathOption = createCoAPOptions(11, path); // Option Uri-Path : sink
+        byte[] contentFormatOption = createCoAPOptions(12, new byte[]{0}); // Option Content-Format : 0
+        byte[] options = mergeByteArray(uriPathOption, contentFormatOption);
+
+        byte[] payload = createCoAPPayload(pl);
+
+        return createCoAPMessage(header, options, payload);
+    }
+
+    public byte[] createPUTRequest(String path, String pl) {
+        // reset delta before new request
+        prevDelta = 0;
+
+        byte[] header = createCoAPHeader(3);
+
+        // Options
+        byte[] uriPathOption = createCoAPOptions(11, path); // Option Uri-Path : sink
+        byte[] contentFormatOption = createCoAPOptions(12, new byte[]{0}); // Option Content-Format : 0
+        byte[] options = mergeByteArray(uriPathOption, contentFormatOption);
+
+        byte[] payload = createCoAPPayload(pl);
+
+        return createCoAPMessage(header, options, payload);
+    }
+    
+    public byte[] createDELETERequest(String path) {
+        // reset delta before new request
+        prevDelta = 0;
+
+        byte[] header = createCoAPHeader(4);
+        byte[] uriPathOption = createCoAPOptions(11, path); // Option Uri-Path : sink
+
+        return createCoAPMessage(header, uriPathOption, new byte[0]);
     }
 
     public void sendMessage(byte[] message) {
@@ -119,40 +189,31 @@ public class CoAPClient extends Thread {
             // receiving of the message
             byte[] buffer = new byte[1024];
             DatagramPacket responsePacket = new DatagramPacket(buffer, buffer.length);
-            //socket.receive(responsePacket);
             socket.setSoTimeout(2000); // Timeout de 2 secondes
 
             try {
                 socket.receive(responsePacket);
             } catch (java.net.SocketTimeoutException e) {
                 System.out.println("No response from the server. It may not be running.");
-                socket.close();
                 return;
             }
 
             if (responsePacket.getLength() == 0) {
                 System.out.println("Empty response received from the server.");
-                socket.close();
                 return;
             }
 
-            // response
-            String response = new String(responsePacket.getData(), 0, responsePacket.getLength()).trim();
-            System.out.println("Response from the server - See detail in Wireshark:\n" + response);
-
-            // byte[] responseData = responsePacket.getData();
-            // int length = responsePacket.getLength();
+            byte[] responseData = responsePacket.getData();
+            int length = responsePacket.getLength();
     
-            // parseCoAPMessage(responseData, length);
-
-            socket.close();
+            parseCoAPMessage(responseData, length);
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
     
     private void parseCoAPMessage(byte[] data, int length) {
-        // 1. En-tête
+        // 1. Header
         int version = (data[0] >> 6) & 0x03;
         int type = (data[0] >> 4) & 0x03;
         int tokenLength = data[0] & 0x0F;
@@ -165,7 +226,7 @@ public class CoAPClient extends Thread {
         System.out.println("Code: " + code);
         System.out.println("Message ID: " + messageId);
     
-        // 2. Token (si présent)
+        // 2. Token (if present)
         int index = 4;
         if (tokenLength > 0) {
             byte[] token = new byte[tokenLength];
@@ -174,7 +235,7 @@ public class CoAPClient extends Thread {
             index += tokenLength;
         }
     
-        // 3. Options et Payload
+        // 3. Options and Payload
         boolean payloadMarkerFound = false;
         while (index < length) {
             if ((data[index] & 0xFF) == 0xFF) { // Marqueur de début du payload
@@ -187,7 +248,7 @@ public class CoAPClient extends Thread {
             int optionLength = data[index] & 0x0F;
             index++;
     
-            // Option Delta et Longueur
+            // Option Delta and Length
             if (delta == 13) {
                 delta += data[index++] & 0xFF;
             } else if (delta == 14) {
@@ -207,7 +268,7 @@ public class CoAPClient extends Thread {
             System.out.println("Option Delta: " + delta + ", Value: " + optionValue);
         }
     
-        // 4. Payload (si présent)
+        // 4. Payload (if present)
         if (payloadMarkerFound && index < length) {
             String payload = new String(data, index, length - index);
             System.out.println("Payload: " + payload);
