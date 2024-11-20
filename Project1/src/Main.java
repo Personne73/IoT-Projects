@@ -17,15 +17,32 @@ public class Main {
             byte[] postRequest = client.createPOSTRequest("sink", "temperature=25");
             client.sendMessage(postRequest);
 
+            System.out.println("\n-----GET REQUEST-----");
+            getRequest = client.createGETRequest("sink");
+            client.sendMessage(getRequest);
+
             // PUT
             System.out.println("\n-----PUT REQUEST-----");
             byte[] putRequest = client.createPUTRequest("sink", "temperature=-6");
             client.sendMessage(putRequest);
 
+            System.out.println("\n-----GET REQUEST-----");
+            getRequest = client.createGETRequest("sink");
+            client.sendMessage(getRequest);
+
             // DELETE
             System.out.println("\n-----DELETE REQUEST-----");
             byte[] deleteRequest = client.createDELETERequest("sink");
             client.sendMessage(deleteRequest);
+
+            System.out.println("\n-----GET REQUEST-----");
+            getRequest = client.createGETRequest("sink");
+            client.sendMessage(getRequest);
+
+
+            System.out.println("\n-----GET REQUEST-----");
+            getRequest = client.createGETRequest("large");
+            client.sendMessage(getRequest);
 
             // close the CoAP client
             client.shutdown();
