@@ -50,7 +50,9 @@ public class MQTTBroker {
             case 1: // connect
                 message = processConnect(data);
                 break;
-        
+            case 12: // pingreq
+                message = processPingResp(data);
+                break;
             default:
                 System.out.println("Unknown message type: " + messageType);
                 break;
@@ -60,7 +62,7 @@ public class MQTTBroker {
     }
 
     public byte[] processConnect(byte[] data) {
-        System.out.println("Processing CONNECT message");
+        System.out.println("\nProcessing CONNECT message");
 
         // header
         //int remainingLength = data[1];
@@ -146,5 +148,16 @@ public class MQTTBroker {
         connAck[4] = (byte) 0; // no properties
 
         return connAck;
+    }
+
+    public byte[] processPingResp(byte[] data) {
+        System.out.println("\nProcessing PINGREQ message");
+
+        byte[] pingResp = new byte[2];
+        pingResp[0] = (byte) 0xD0; // PINGRESQ
+        pingResp[1] = (byte) 0x00; // remaining length
+
+        System.out.println("Sending PINGRESP");
+        return pingResp;
     }
 }

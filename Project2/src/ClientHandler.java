@@ -30,7 +30,7 @@ public class ClientHandler extends Thread {
 
                 output.write(response);
                 output.flush();
-                output.close();
+                //output.close();
             }
         } catch (Exception e) {
             e.printStackTrace();
