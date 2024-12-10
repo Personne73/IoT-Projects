@@ -8,9 +8,11 @@ public class ClientHandler extends Thread {
 
     private final Socket clientSocket;
     private boolean isConnected = true;
+    private MQTTBroker broker;
 
-    public ClientHandler(Socket socket) {
+    public ClientHandler(Socket socket, MQTTBroker b) {
         this.clientSocket = socket;
+        this.broker = b;
         System.out.println("Client handler started for: " + clientSocket.getInetAddress());
     }
 
@@ -21,10 +23,19 @@ public class ClientHandler extends Thread {
                 InputStream input = clientSocket.getInputStream();
                 OutputStream output = clientSocket.getOutputStream();
 
-                byte[] buffer = new byte[1024];
+                byte[] buffer = new byte[2048];
+                input.read(buffer); // read data
+
+                byte[] response = broker.processMessage(buffer);
+
+                output.write(response);
+                output.flush();
+                output.close();
             }
         } catch (Exception e) {
             e.printStackTrace();
+            System.out.println("Client disconnected unexpectedly: " + clientSocket.getInetAddress());
+            shutdown();
         }
     }
 
