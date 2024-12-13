@@ -58,6 +58,9 @@ public class MQTTBroker {
             case 8: // subscribe
                 message = processSubscribe(data, clientSocket);
                 break;
+            case 10: // unsubscribe
+                message = processUnsubscribe(data, clientSocket);
+                break;
             // case 14: // disconnect
             //     processDisconnect(data);
             default:
@@ -168,7 +171,7 @@ public class MQTTBroker {
         return pingResp;
     }
 
-    public byte[] processSubscribe(byte[] data, Socket clienSocket) {
+    public byte[] processSubscribe(byte[] data, Socket clientSocket) {
         System.out.println("\nProcessing SUBSCRIBE message");
 
         // header
@@ -221,13 +224,14 @@ public class MQTTBroker {
 
             // add the subscriptions
             // check if the topic exist, otherwise add the topic and create a list to it and add the clientSocket
-            topicSubscriptions.computeIfAbsent(topicName, k -> new ArrayList<>()).add(clienSocket);
+            topicSubscriptions.computeIfAbsent(topicName, k -> new ArrayList<>()).add(clientSocket);
 
             if (index >= 2 + remainingLength) {
                 break;
             }
         }
-        System.out.println("Topic subscriptions: " + topicSubscriptions.toString() );
+        System.out.println("Updated topic subscriptions after Subscribe: " + topicSubscriptions.toString() );
+        
         // send the response
         return sendSubAck(packetId, nbTopics);
     }
@@ -249,6 +253,91 @@ public class MQTTBroker {
         for(int i = 0; i < nbTopics; i++) subAck[index++] = 0x00; // QoS 0 for each topics
 
         return subAck;
+    }
+
+    public byte[] processUnsubscribe(byte[] data, Socket clientSocket) {
+        System.out.println("\nProcessing UNSUBSCRIBE message");
+
+        // header
+        int remainingLength = 0;
+        int multiplier = 1;
+        int index = 1; // Après le premier byte (Header)
+        byte encodedByte;
+
+        do {
+            encodedByte = data[index++];
+            remainingLength += (encodedByte & 127) * multiplier;
+            multiplier *= 128;
+        } while ((encodedByte & 128) != 0);
+
+        System.out.println("Remaining Length: " + remainingLength);
+
+        // packet identifier (2 bytes)
+        int packetId = ((data[index] & 0xFF) << 8) | (data[index + 1] & 0xFF);
+        index += 2;
+
+        System.out.println("Packet identifier: " + packetId);
+
+        // property length
+        int propertiesLength = 0;
+        multiplier = 1;
+
+        do {
+            encodedByte = data[index++];
+            propertiesLength += (encodedByte & 127) * multiplier;
+            multiplier *= 128;
+        } while ((encodedByte & 128) != 0);
+
+        index += propertiesLength;
+
+        // payload : topic filter
+        int nbTopics = 0;
+        while (index < data.length) {
+            // topic length
+            int topicLength = ((data[index] & 0xFF) << 8) | (data[index + 1] & 0xFF);
+            index += 2;
+
+            // topic name
+            String topicName = new String(data, index, topicLength);
+            index += topicLength;
+
+            System.out.println("Topic: " + topicName);
+
+            // remove the subscriptions
+            topicSubscriptions.computeIfPresent(topicName, (key, subscribers) -> {
+                subscribers.remove(clientSocket); // Remove the specific client
+                // Remove the topic if no clients are left because a null value remove the key from the map
+                return subscribers.isEmpty() ? null : subscribers; 
+            });
+            nbTopics++;
+
+            if (index >= 2 + remainingLength) {
+                break;
+            }
+        }
+        System.out.println("Updated topic subscriptions after Unsubscribe: " + topicSubscriptions.toString() );
+
+        // send the response
+        return sendUnsubAck(packetId, nbTopics);
+    }
+
+    public byte[] sendUnsubAck(int packetId, int nbTopics) {
+        int len = 2 + 1 + nbTopics; // packecId + propertiesLength + returnCodes length
+        byte[] unsubAck = new byte[2 + len];
+
+        unsubAck[0] = (byte) 0xB0; // SUBACK
+        unsubAck[1] = (byte) len; // remaining length
+
+        // packet identifier
+        unsubAck[2] = (byte) ((packetId >> 8) & 0xFF);
+        unsubAck[3] = (byte) (packetId & 0xFF);
+        
+        unsubAck[4] = (byte) 0x00; // Properties Length (0 for simplicity)
+
+        int index = 5;
+        for(int i = 0; i < nbTopics; i++) unsubAck[index++] = 0x00; // QoS 0 for each topics
+
+        return unsubAck;
     }
 
     // public void processDisconnect(byte[] data) {
