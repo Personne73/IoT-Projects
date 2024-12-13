@@ -26,7 +26,7 @@ public class ClientHandler extends Thread {
                 byte[] buffer = new byte[2048];
                 input.read(buffer); // read data
 
-                byte[] response = broker.processMessage(buffer);
+                byte[] response = broker.processMessage(buffer, clientSocket);
 
                 output.write(response);
                 output.flush();

@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.net.Socket;
 
 /**
  * In the second programming project you will create an MQTT broker program that can broker MQTT messages. 
@@ -35,24 +36,30 @@ import java.util.Map;
  */
 public class MQTTBroker {
 
-    // list of active client : clientID - clientSocket
-    //private Map<String, Socket> sessions = new HashMap<>();
-    private List<String> sessions =  new ArrayList<String>();
+    // list of active client : clientSocket - clientID
+    private Map<Socket, String> sessions = new HashMap<>();
+    private Map<String, List<Socket>> topicSubscriptions = new HashMap<>();
+    //private List<String> sessions =  new ArrayList<String>();
     public MQTTBroker() {
 
     }
 
-    public byte[] processMessage(byte[] data) {
+    public byte[] processMessage(byte[] data, Socket clientSocket) {
         byte[] message = null;
         int messageType = (data[0] >> 4) & 0x0F;
         
         switch (messageType) {
             case 1: // connect
-                message = processConnect(data);
+                message = processConnect(data, clientSocket);
                 break;
             case 12: // pingreq
                 message = processPingResp(data);
                 break;
+            case 8: // subscribe
+                message = processSubscribe(data, clientSocket);
+                break;
+            // case 14: // disconnect
+            //     processDisconnect(data);
             default:
                 System.out.println("Unknown message type: " + messageType);
                 break;
@@ -61,7 +68,7 @@ public class MQTTBroker {
         return message;
     }
 
-    public byte[] processConnect(byte[] data) {
+    public byte[] processConnect(byte[] data, Socket clienSocket) {
         System.out.println("\nProcessing CONNECT message");
 
         // header
@@ -131,7 +138,7 @@ public class MQTTBroker {
         }
 
         // store the client id
-        sessions.add(clientID);
+        sessions.put(clienSocket, clientID);
         System.out.println("Client successfully connected: " + clientID);
 
         // send the response
@@ -160,4 +167,101 @@ public class MQTTBroker {
         System.out.println("Sending PINGRESP");
         return pingResp;
     }
+
+    public byte[] processSubscribe(byte[] data, Socket clienSocket) {
+        System.out.println("\nProcessing SUBSCRIBE message");
+
+        // header
+        int remainingLength = 0;
+        int multiplier = 1;
+        int index = 1; // Après le premier byte (Header)
+        byte encodedByte;
+
+        do {
+            encodedByte = data[index++];
+            remainingLength += (encodedByte & 127) * multiplier;
+            multiplier *= 128;
+        } while ((encodedByte & 128) != 0);
+
+        System.out.println("Remaining Length: " + remainingLength);
+
+        // packet identifier (2 bytes)
+        int packetId = ((data[index] & 0xFF) << 8) | (data[index + 1] & 0xFF);
+        index += 2;
+
+        System.out.println("Packet identifier: " + packetId);
+
+        // property length
+        int propertiesLength = 0;
+        multiplier = 1;
+
+        do {
+            encodedByte = data[index++];
+            propertiesLength += (encodedByte & 127) * multiplier;
+            multiplier *= 128;
+        } while ((encodedByte & 128) != 0);
+
+        index += propertiesLength;
+
+        // payload : topic filter
+        int nbTopics = 0;
+        while (index < data.length) { //while(index != remainingLength) {
+            // topic length
+            int topicLength = ((data[index] & 0xFF) << 8) | (data[index + 1] & 0xFF);
+            index += 2;
+
+            // topic name
+            String topicName = new String(data, index, topicLength);
+            index += topicLength;
+
+            // subscription options
+            int options = data[index++];
+            nbTopics++;
+            System.out.println("Topic: " + topicName + ", QoS: " + options);
+
+            // add the subscriptions
+            // check if the topic exist, otherwise add the topic and create a list to it and add the clientSocket
+            topicSubscriptions.computeIfAbsent(topicName, k -> new ArrayList<>()).add(clienSocket);
+
+            if (index >= 2 + remainingLength) {
+                break;
+            }
+        }
+        System.out.println("Topic subscriptions: " + topicSubscriptions.toString() );
+        // send the response
+        return sendSubAck(packetId, nbTopics);
+    }
+
+    public byte[] sendSubAck(int packetId, int nbTopics) {
+        int len = 2 + 1 + nbTopics; // packecId + propertiesLength + returnCodes length
+        byte[] subAck = new byte[2 + len];
+
+        subAck[0] = (byte) 0x90; // SUBACK
+        subAck[1] = (byte) len; // remaining length
+
+        // packet identifier
+        subAck[2] = (byte) ((packetId >> 8) & 0xFF);
+        subAck[3] = (byte) (packetId & 0xFF);
+        
+        subAck[4] = (byte) 0x00; // Properties Length (0 for simplicity)
+
+        int index = 5;
+        for(int i = 0; i < nbTopics; i++) subAck[index++] = 0x00; // QoS 0 for each topics
+
+        return subAck;
+    }
+
+    // public void processDisconnect(byte[] data) {
+    //     System.out.println("\nProcessing DISCONNECT message");
+
+    //     int remainingLength = data[1];
+    //     if (remainingLength != 0) {
+    //         System.out.println("Invalid DISCONNECT message: Remaining Length is not 0");
+    //         return;
+    //     }
+
+    //     // Désinscription logique du client
+    //     // Note : Vous pourriez recevoir l'identifiant du client à partir de la session en cours
+    //     System.out.println("Client requested to disconnect");
+    // }
 }
