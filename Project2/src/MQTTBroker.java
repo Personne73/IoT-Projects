@@ -61,8 +61,14 @@ public class MQTTBroker {
             case 10: // unsubscribe
                 message = processUnsubscribe(data, clientSocket);
                 break;
-            // case 14: // disconnect
-            //     processDisconnect(data);
+            case 14: // disconnect
+                // int remainingLength = data[1];
+                // if (remainingLength != 0) {
+                //     System.out.println("Invalid DISCONNECT message: Remaining Length is not 0");
+                //     break;
+                // }
+                processDisconnect(data, clientSocket);
+                break;
             default:
                 System.out.println("Unknown message type: " + messageType);
                 break;
@@ -141,8 +147,22 @@ public class MQTTBroker {
         }
 
         // store the client id
+        for (Map.Entry<Socket, String> entry : sessions.entrySet()) {
+            if (entry.getValue().equals(clientID)) {
+                System.out.println("###### Duplicate Client ID detected: " + clientID);
+                try {
+                    Socket existingSocket = entry.getKey();
+                    processDisconnect(new byte[]{0x00, 0x00, 0x00}, existingSocket);
+                    System.out.println("Closed existing session for Client ID: " + clientID);
+                } catch (Exception e) {
+                    System.err.println("Error closing previous session: " + e.getMessage());
+                }
+                break;
+            }
+        }
         sessions.put(clienSocket, clientID);
         System.out.println("Client successfully connected: " + clientID);
+        System.out.println("Active sessions: " + sessions.toString());
 
         // send the response
         return sendConAck(0);
@@ -168,6 +188,7 @@ public class MQTTBroker {
         pingResp[1] = (byte) 0x00; // remaining length
 
         System.out.println("Sending PINGRESP");
+        System.out.println("Active sessions: " + sessions.toString());
         return pingResp;
     }
 
@@ -340,17 +361,63 @@ public class MQTTBroker {
         return unsubAck;
     }
 
-    // public void processDisconnect(byte[] data) {
-    //     System.out.println("\nProcessing DISCONNECT message");
+    /*
+    Gérer les déconnexions des clients de manière ordonnée ou inattendue, en effectuant les actions suivantes :
+         Désinscrire le client de tous les sujets auxquels il est abonné.
+         Supprimer la session du client du broker.
+        - Gérer les cas de déconnexion inattendue (par exemple, une perte de connexion sans message DISCONNECT).
+    */
+    public void processDisconnect(byte[] data, Socket clientSocket) {
+        if (!sessions.containsKey(clientSocket)) {
+            System.out.println("Client already disconnected: " + clientSocket.getInetAddress());
+            return;
+        }
 
-    //     int remainingLength = data[1];
-    //     if (remainingLength != 0) {
-    //         System.out.println("Invalid DISCONNECT message: Remaining Length is not 0");
-    //         return;
-    //     }
+        System.out.println("\nProcessing DISCONNECT message");
 
-    //     // Désinscription logique du client
-    //     // Note : Vous pourriez recevoir l'identifiant du client à partir de la session en cours
-    //     System.out.println("Client requested to disconnect");
-    // }
+        if (data == null) { // Unexpected disconnection
+            System.out.println("Disconnect triggered unexpectedly for client: " + clientSocket.getInetAddress());
+        } else {
+            int disconnectReason = data[2];
+            /*if (disconnectReason != 0) {
+                System.out.println("(\"###### DISCONNECT reason is not normal: " + disconnectReason);
+                return;
+            }*/
+            System.out.println("Client disconnected gracefully with reason code: " + disconnectReason);
+        }
+
+        // unsubscribe the client form all its topics
+        // topicSubscriptions.forEach((topic, clients) -> {
+        //     clients.remove(clientSocket);
+        //     if (clients.isEmpty()) { // if the topic don't have subscribers
+        //         topicSubscriptions.remove(topic);
+        //     }
+        // });
+
+        List<String> topicsToRemove = new ArrayList<>();
+        for (Map.Entry<String, List<Socket>> entry : topicSubscriptions.entrySet()) {
+            List<Socket> clients = entry.getValue();
+            clients.remove(clientSocket);
+            if (clients.isEmpty()) {
+                topicsToRemove.add(entry.getKey());
+            }
+        }
+
+        // Delete all the empty topics
+        for (String topic : topicsToRemove) {
+            topicSubscriptions.remove(topic);
+        }
+
+        // remove the client from the active users
+        String clientID = sessions.remove(clientSocket);
+        System.out.println("Client " + clientID + " successfully disconnected.");
+
+        try {
+            clientSocket.close();
+            System.out.println("Connection closed for client (disconnect): " + clientSocket.getInetAddress());
+            System.out.println("Active sessions: " + sessions.toString());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 }

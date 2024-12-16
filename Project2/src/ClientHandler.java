@@ -8,6 +8,7 @@ public class ClientHandler extends Thread {
 
     private final Socket clientSocket;
     private boolean isConnected = true;
+    private boolean isDisconnected = false;
     private MQTTBroker broker;
 
     public ClientHandler(Socket socket, MQTTBroker b) {
@@ -24,7 +25,18 @@ public class ClientHandler extends Thread {
                 OutputStream output = clientSocket.getOutputStream();
 
                 byte[] buffer = new byte[2048];
-                input.read(buffer); // read data
+                int bytesRead = input.read(buffer); // read data
+
+                // if (bytesRead == -1) { // Clean disconnection when the client return END
+                //     // System.out.println("Client disconnected gracefully: " + clientSocket.getInetAddress());
+                //     // broker.processDisconnect(new byte[]{0x00, 0x00, 0x00}, clientSocket); 
+                //     if (!isDisconnected) {
+                //         isDisconnected = true;
+                //         System.out.println("Client disconnected gracefully: " + clientSocket.getInetAddress());
+                //         broker.processDisconnect(new byte[]{0x00, 0x00, 0x00}, clientSocket); // Fake message to have a disconnection
+                //     }
+                //     break;
+                // }
 
                 byte[] response = broker.processMessage(buffer, clientSocket);
 
@@ -32,9 +44,17 @@ public class ClientHandler extends Thread {
                 output.flush();
                 //output.close();
             }
-        } catch (Exception e) {
-            e.printStackTrace();
-            System.out.println("Client disconnected unexpectedly: " + clientSocket.getInetAddress());
+        } catch (Exception e) { // Unexpexted disconnection
+            // e.printStackTrace();
+            // System.out.println("Client disconnected unexpectedly: " + clientSocket.getInetAddress());
+            // //shutdown();
+            // broker.processDisconnect(null, clientSocket); // deco brusque
+            if (!isDisconnected) {
+                isDisconnected = true;
+                System.out.println("Client disconnected unexpectedly: " + clientSocket.getInetAddress());
+                broker.processDisconnect(null, clientSocket); // deco brusque
+            }
+        } finally {
             shutdown();
         }
     }
@@ -43,6 +63,7 @@ public class ClientHandler extends Thread {
         isConnected = false;
         try {
             clientSocket.close();
+            System.out.println("Connection closed for client: " + clientSocket.getInetAddress());
         } catch (Exception e) {
             e.printStackTrace();
         }
