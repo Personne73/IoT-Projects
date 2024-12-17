@@ -422,7 +422,7 @@ public class MQTTBroker {
         }
 
         // payload
-        int payloadLength = remainingLength - (index - 1); // remaining after topic and packet id
+        int payloadLength = remainingLength - (index - 2); // remaining after topic and packet id
         byte[] payload = new byte[payloadLength];
         System.arraycopy(data, index, payload, 0, payloadLength);
 
@@ -430,17 +430,21 @@ public class MQTTBroker {
         System.out.println("Payload: " + message);
 
         // Send the message to all sockets on the subscription list of the topic
-        if (topicSubscriptions.containsKey(topicName)) {
-            List<Socket> subscribers = topicSubscriptions.get(topicName);
-            for (Socket subscriber : subscribers) {
-                try {
-                    OutputStream output = subscriber.getOutputStream();
-                    byte[] msg = constructPublishMessage(topicName, payload, 0);
-                    output.write(msg);
-                    output.flush();
-                    System.out.println("Message sent to subscriber: " + subscriber);
-                } catch (Exception e) {
-                    System.out.println("Failed to send message to subscriber: " + subscriber);
+        for (Map.Entry<String, List<Socket>> entry : topicSubscriptions.entrySet()) {
+            String subscribedTopic = entry.getKey();
+
+            if (topicMatches(subscribedTopic, topicName)) { // Check topic match (wildcard support)
+                List<Socket> subscribers = entry.getValue();
+                for (Socket subscriber : subscribers) {
+                    try {
+                        OutputStream output = subscriber.getOutputStream();
+                        byte[] msg = constructPublishMessage(topicName, payload, 0);
+                        output.write(msg);
+                        output.flush();
+                        System.out.println("Message sent to subscriber: " + subscriber + " for topic: " + subscribedTopic);
+                    } catch (Exception e) {
+                        System.out.println("Failed to send message to subscriber: " + subscriber);
+                    }
                 }
             }
         }
@@ -459,6 +463,26 @@ public class MQTTBroker {
 
         return null;
     }
+
+    private boolean topicMatches(String subscribedTopic, String publishedTopic) {
+        String[] subLevels = subscribedTopic.split("/");
+        String[] pubLevels = publishedTopic.split("/");
+    
+        for (int i = 0; i < subLevels.length; i++) {
+            if (i >= pubLevels.length) return false; // Plus de niveaux dans l'abonné que dans le message publié
+    
+            if (subLevels[i].equals("#")) {
+                return true; // Le # capture tous les sous-sujets restants
+            }
+    
+            if (!subLevels[i].equals("+") && !subLevels[i].equals(pubLevels[i])) {
+                return false; // Pas de correspondance
+            }
+        }
+    
+        return pubLevels.length == subLevels.length; // Correspondance exacte
+    }
+    
 
     private byte[] constructPublishMessage(String topicName, byte[] payload, int qos) {
         System.out.println("Process CONSTRUCT PLUBLISH MESSAGE");
