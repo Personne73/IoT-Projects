@@ -1,9 +1,11 @@
 package Project2.src;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.io.OutputStream;
 import java.net.Socket;
 
 /**
@@ -36,9 +38,9 @@ import java.net.Socket;
  */
 public class MQTTBroker {
 
-    // list of active client : clientSocket - clientID
-    private Map<Socket, String> sessions = new HashMap<>();
-    private Map<String, List<Socket>> topicSubscriptions = new HashMap<>();
+    private Map<Socket, String> sessions = new HashMap<>(); // key : clientSocket, value : id
+    private Map<String, List<Socket>> topicSubscriptions = new HashMap<>(); // key : topic name, value : list of clientSockets
+    private Map<String, byte[]> retainMessages = new HashMap<>(); // key : topic name, value : msg
     //private List<String> sessions =  new ArrayList<String>();
     public MQTTBroker() {
 
@@ -60,6 +62,9 @@ public class MQTTBroker {
                 break;
             case 10: // unsubscribe
                 message = processUnsubscribe(data, clientSocket);
+                break;
+            case 3: // publish
+                message = processPublish(data, clientSocket);
                 break;
             case 14: // disconnect
                 // int remainingLength = data[1];
@@ -247,6 +252,20 @@ public class MQTTBroker {
             // check if the topic exist, otherwise add the topic and create a list to it and add the clientSocket
             topicSubscriptions.computeIfAbsent(topicName, k -> new ArrayList<>()).add(clientSocket);
 
+            // Check for retained message
+            if (retainMessages.containsKey(topicName)) {
+                byte[] retainedPayload = retainMessages.get(topicName);
+                try {
+                    System.out.println("Sending retained message for topic: " + topicName);
+                    OutputStream output = clientSocket.getOutputStream();
+                    byte[] publishMessage = constructPublishMessage(topicName, retainedPayload, 0);
+                    output.write(publishMessage);
+                    output.flush();
+                } catch (Exception e) {
+                    System.out.println("Failed to send retained message to subscriber: " + e.getMessage());
+                }
+            }
+
             if (index >= 2 + remainingLength) {
                 break;
             }
@@ -359,6 +378,168 @@ public class MQTTBroker {
         for(int i = 0; i < nbTopics; i++) unsubAck[index++] = 0x00; // QoS 0 for each topics
 
         return unsubAck;
+    }
+
+    public byte[] processPublish(byte[] data, Socket clientSocket) {
+        System.out.println("\nProcessing PUBLISH message");
+
+        // HEADER
+
+        // Extract QoS, DUP et RETAIN
+        int header = data[0];
+        int qos = (header >> 1) & 0x03; // QoS niveau
+        boolean retain = (header & 0x01) == 1;
+        boolean dup = ((header >> 3) & 0x01) == 1;
+
+        // remaining length
+        int remainingLength = 0;
+        int multiplier = 1;
+        int index = 1; // Après le premier byte (Header)
+        byte encodedByte;
+
+        do {
+            encodedByte = data[index++];
+            remainingLength += (encodedByte & 127) * multiplier;
+            multiplier *= 128;
+        } while ((encodedByte & 128) != 0);
+
+        System.out.println("Remaining Length: " + remainingLength);
+
+        // topic length + name
+        int topicLength = ((data[index] & 0xFF) << 8) | (data[index + 1] & 0xFF);
+        index += 2;
+        String topicName = new String(data, index, topicLength);
+        index += topicLength;
+
+        System.out.println("Topic: " + topicName + ", QoS: " + qos + ", RETAIN: " + retain + ", DUP: " + dup);
+
+        // packet/message identifier for QoS 1 (not available on QoS 0)
+        int packetId = -1;
+        if (qos > 0) {
+            packetId = ((data[index] & 0xFF) << 8) | (data[index + 1] & 0xFF);
+            index += 2;
+            System.out.println("Packet ID: " + packetId);
+        }
+
+        // payload
+        int payloadLength = remainingLength - (index - 1); // remaining after topic and packet id
+        byte[] payload = new byte[payloadLength];
+        System.arraycopy(data, index, payload, 0, payloadLength);
+
+        String message = new String(payload);
+        System.out.println("Payload: " + message);
+
+        // Send the message to all sockets on the subscription list of the topic
+        if (topicSubscriptions.containsKey(topicName)) {
+            List<Socket> subscribers = topicSubscriptions.get(topicName);
+            for (Socket subscriber : subscribers) {
+                try {
+                    OutputStream output = subscriber.getOutputStream();
+                    byte[] msg = constructPublishMessage(topicName, payload, 0);
+                    output.write(msg);
+                    output.flush();
+                    System.out.println("Message sent to subscriber: " + subscriber);
+                } catch (Exception e) {
+                    System.out.println("Failed to send message to subscriber: " + subscriber);
+                }
+            }
+        }
+
+        // flag RETAIN
+        if (retain) {
+            retainMessages.put(topicName, payload);
+            System.out.println("Message retained for topic: " + topicName);
+        }
+
+        // Retourner PUBACK pour QoS 1
+        if (qos == 1) {
+            System.out.println("Sending PUBACK for Packet ID: " + packetId);
+            return sendPubAck(packetId);
+        }
+
+        return null;
+    }
+
+    private byte[] constructPublishMessage(String topicName, byte[] payload, int qos) {
+        System.out.println("Process CONSTRUCT PLUBLISH MESSAGE");
+        byte[] topicBytes = topicName.getBytes();
+        int payloadLength = payload.length;
+
+        int remainingLength = 2 + topicBytes.length + payloadLength + (qos > 0 ? 2 : 0);
+        byte[] remainingLengthBytes = encodeRemainingLength(remainingLength);
+        System.out.println("Remaining Length: " + remainingLength);
+    
+        // Fixed header + Remaining Length
+        int fixedHeaderLength = 1 + remainingLengthBytes.length;
+        byte[] publishMessage = new byte[fixedHeaderLength + remainingLength];
+        //byte[] publishMessage = new byte[1 + remainingLength];
+
+        publishMessage[0] = (byte) (0x30 | (qos << 1)); // Fixed header: PUBLISH + QoS
+    
+        //publishMessage[1] = (byte) remainingLength;
+
+        // Insert Remaining Length
+        System.arraycopy(remainingLengthBytes, 0, publishMessage, 1, remainingLengthBytes.length);
+
+        // Insert Topic Length and Topic Name
+        int index = fixedHeaderLength;
+        publishMessage[index++] = (byte) ((topicBytes.length >> 8) & 0xFF);
+        publishMessage[index++] = (byte) (topicBytes.length & 0xFF);
+        System.arraycopy(topicBytes, 0, publishMessage, index, topicBytes.length);
+        index += topicBytes.length;
+
+        // topic length + name
+        // publishMessage[2] = (byte) ((topicBytes.length >> 8) & 0xFF);
+        // publishMessage[3] = (byte) (topicBytes.length & 0xFF);
+        // System.arraycopy(topicBytes, 0, publishMessage, 4, topicBytes.length);
+    
+        // // Packet Identifier pour QoS 1
+        // int index = 4 + topicBytes.length;
+        // if (qos > 0) {
+        //     publishMessage[index++] = (byte) 0x00; // Packet ID (à améliorer pour avoir un ID unique)
+        //     publishMessage[index++] = (byte) 0x01; // Exemple d'ID : 1
+        // }
+
+        // insert payload
+        System.arraycopy(payload, 0, publishMessage, index, payloadLength);
+
+        System.out.println("Constructed PUBLISH message: " + Arrays.toString(publishMessage));
+        return publishMessage;
+    }
+
+    private byte[] encodeRemainingLength(int length) {
+        List<Byte> encodedBytes = new ArrayList<>();
+    
+        do {
+            int encodedByte = length % 128; // 7-bit group
+            length /= 128;
+    
+            if (length > 0) {
+                encodedByte |= 128; // Set MSB to 1 if more bytes follow
+            }
+    
+            encodedBytes.add((byte) encodedByte);
+        } while (length > 0);
+    
+        // Convert List<Byte> to byte[]
+        byte[] result = new byte[encodedBytes.size()];
+        for (int i = 0; i < encodedBytes.size(); i++) {
+            result[i] = encodedBytes.get(i);
+        }
+    
+        return result;
+    }
+    
+
+    private byte[] sendPubAck(int packetId) {
+        byte[] pubAck = new byte[4];
+    
+        pubAck[0] = (byte) 0x40; // PUBACK
+        pubAck[1] = (byte) 2;    // Remaining Length
+        pubAck[2] = (byte) ((packetId >> 8) & 0xFF);
+        pubAck[3] = (byte) (packetId & 0xFF);
+    
+        return pubAck;
     }
 
     /*

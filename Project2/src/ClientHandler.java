@@ -25,7 +25,7 @@ public class ClientHandler extends Thread {
                 OutputStream output = clientSocket.getOutputStream();
 
                 byte[] buffer = new byte[2048];
-                int bytesRead = input.read(buffer); // read data
+                input.read(buffer); // read data
 
                 // if (bytesRead == -1) { // Clean disconnection when the client return END
                 //     // System.out.println("Client disconnected gracefully: " + clientSocket.getInetAddress());
