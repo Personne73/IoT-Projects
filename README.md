@@ -33,13 +33,13 @@ The program should be able to receive and handle client requests for subscribing
 - [X] Unsubscribe
 The program should be able to receive and handle client request for unsubscribing to previously subscribed topics.
 
-- [ ] Publish
+- [X] Publish
 The program should be able to receive and handle clients that want to publish messages to certain topics, including retain functionality.
 
 - [X] MQTT Ping
 The program should be able to receive and handle clients that sends MQTT Ping requests
 
-- [ ] Disconnect
+- [X] Disconnect
 The program should be able to receive and handle clients that wants to gracefully disconnect. As well as recover when someone ungracefully disconnects.
 
 ## Programming Project 3: Combined IoT Project

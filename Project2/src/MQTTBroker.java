@@ -41,7 +41,7 @@ public class MQTTBroker {
     private Map<Socket, String> sessions = new HashMap<>(); // key : clientSocket, value : id
     private Map<String, List<Socket>> topicSubscriptions = new HashMap<>(); // key : topic name, value : list of clientSockets
     private Map<String, byte[]> retainMessages = new HashMap<>(); // key : topic name, value : msg
-    //private List<String> sessions =  new ArrayList<String>();
+
     public MQTTBroker() {
 
     }
@@ -67,11 +67,6 @@ public class MQTTBroker {
                 message = processPublish(data, clientSocket);
                 break;
             case 14: // disconnect
-                // int remainingLength = data[1];
-                // if (remainingLength != 0) {
-                //     System.out.println("Invalid DISCONNECT message: Remaining Length is not 0");
-                //     break;
-                // }
                 processDisconnect(data, clientSocket);
                 break;
             default:
@@ -496,12 +491,9 @@ public class MQTTBroker {
         // Fixed header + Remaining Length
         int fixedHeaderLength = 1 + remainingLengthBytes.length;
         byte[] publishMessage = new byte[fixedHeaderLength + remainingLength];
-        //byte[] publishMessage = new byte[1 + remainingLength];
 
         publishMessage[0] = (byte) (0x30 | (qos << 1)); // Fixed header: PUBLISH + QoS
     
-        //publishMessage[1] = (byte) remainingLength;
-
         // Insert Remaining Length
         System.arraycopy(remainingLengthBytes, 0, publishMessage, 1, remainingLengthBytes.length);
 
@@ -511,18 +503,6 @@ public class MQTTBroker {
         publishMessage[index++] = (byte) (topicBytes.length & 0xFF);
         System.arraycopy(topicBytes, 0, publishMessage, index, topicBytes.length);
         index += topicBytes.length;
-
-        // topic length + name
-        // publishMessage[2] = (byte) ((topicBytes.length >> 8) & 0xFF);
-        // publishMessage[3] = (byte) (topicBytes.length & 0xFF);
-        // System.arraycopy(topicBytes, 0, publishMessage, 4, topicBytes.length);
-    
-        // // Packet Identifier pour QoS 1
-        // int index = 4 + topicBytes.length;
-        // if (qos > 0) {
-        //     publishMessage[index++] = (byte) 0x00; // Packet ID (à améliorer pour avoir un ID unique)
-        //     publishMessage[index++] = (byte) 0x01; // Exemple d'ID : 1
-        // }
 
         // insert payload
         System.arraycopy(payload, 0, publishMessage, index, payloadLength);
@@ -584,20 +564,8 @@ public class MQTTBroker {
             System.out.println("Disconnect triggered unexpectedly for client: " + clientSocket.getInetAddress());
         } else {
             int disconnectReason = data[2];
-            /*if (disconnectReason != 0) {
-                System.out.println("(\"###### DISCONNECT reason is not normal: " + disconnectReason);
-                return;
-            }*/
             System.out.println("Client disconnected gracefully with reason code: " + disconnectReason);
         }
-
-        // unsubscribe the client form all its topics
-        // topicSubscriptions.forEach((topic, clients) -> {
-        //     clients.remove(clientSocket);
-        //     if (clients.isEmpty()) { // if the topic don't have subscribers
-        //         topicSubscriptions.remove(topic);
-        //     }
-        // });
 
         List<String> topicsToRemove = new ArrayList<>();
         for (Map.Entry<String, List<Socket>> entry : topicSubscriptions.entrySet()) {
