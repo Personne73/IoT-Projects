@@ -272,6 +272,21 @@ public class CoAPClient extends Thread {
         if (payloadMarkerFound && index < length) {
             String payload = new String(data, index, length - index);
             System.out.println("Payload: " + payload);
+
+            // Save data to file
+            try {
+                // Parse le payload pour extraire les données
+                String room = extractField(payload, "room");
+                String temperatureStr = extractField(payload, "temperature");
+    
+                if (room != null && temperatureStr != null) {
+                    double temperature = Double.parseDouble(temperatureStr);
+                    // Appel à la méthode DataSaver pour sauvegarder
+                    DataSaver.saveData(room, temperature);
+                }
+            } catch (Exception e) {
+                System.err.println("[ERROR] Failed to parse and save payload data: " + e.getMessage());
+            }
         }
     }
     
@@ -282,5 +297,21 @@ public class CoAPClient extends Thread {
         }
         return sb.toString();
     }    
+
+    private String extractField(String json, String field) {
+        String key = "\"" + field + "\":";
+        int startIndex = json.indexOf(key);
+        if (startIndex != -1) {
+            startIndex += key.length();
+            int endIndex = json.indexOf(",", startIndex);
+            if (endIndex == -1) { // Si c'est le dernier champ, chercher la fin de l'objet
+                endIndex = json.indexOf("}", startIndex);
+            }
+            if (endIndex != -1) {
+                return json.substring(startIndex, endIndex).replace("\"", "").trim();
+            }
+        }
+        return null;
+    }
 
 }
