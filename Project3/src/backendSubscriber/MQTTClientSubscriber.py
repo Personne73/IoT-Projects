@@ -32,7 +32,7 @@ import json
 
 BROKER_ADDRESS = "localhost"
 BROKER_PORT = 1883
-TOPIC_BASE = "home/temperature/kitchen"
+TOPIC_BASE = "home/temperature/#"
 
 subscribed_data = {}  # store subscribed data from the broker
 

@@ -181,7 +181,6 @@ public class CoAPClient extends Thread {
     }
 
     public void sendMessage(byte[] message) {
-        String response = null;
         try {
             // sending of the message
             DatagramPacket packet = new DatagramPacket(message, message.length, serverAddress, COAP_PORT);
