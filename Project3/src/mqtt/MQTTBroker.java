@@ -248,18 +248,36 @@ public class MQTTBroker {
             topicSubscriptions.computeIfAbsent(topicName, k -> new ArrayList<>()).add(clientSocket);
 
             // Check for retained message
-            if (retainMessages.containsKey(topicName)) {
-                byte[] retainedPayload = retainMessages.get(topicName);
-                try {
-                    System.out.println("Sending retained message for topic: " + topicName);
-                    OutputStream output = clientSocket.getOutputStream();
-                    byte[] publishMessage = constructPublishMessage(topicName, retainedPayload, 0);
-                    output.write(publishMessage);
-                    output.flush();
-                } catch (Exception e) {
-                    System.out.println("Failed to send retained message to subscriber: " + e.getMessage());
+            // if (retainMessages.containsKey(topicName)) {
+            //     byte[] retainedPayload = retainMessages.get(topicName);
+            //     try {
+            //         System.out.println("Sending retained message for topic: " + topicName);
+            //         OutputStream output = clientSocket.getOutputStream();
+            //         byte[] publishMessage = constructPublishMessage(topicName, retainedPayload, 0);
+            //         output.write(publishMessage);
+            //         output.flush();
+            //     } catch (Exception e) {
+            //         System.out.println("Failed to send retained message to subscriber: " + e.getMessage());
+            //     }
+            // }
+            // Send retained messages for wildcards
+            for (Map.Entry<String, byte[]> retainedEntry : retainMessages.entrySet()) {
+                String retainedTopic = retainedEntry.getKey();
+                byte[] retainedPayload = retainedEntry.getValue();
+
+                if (topicMatches(topicName, retainedTopic)) {
+                    try {
+                        System.out.println("Sending retained message for topic: " + retainedTopic);
+                        OutputStream output = clientSocket.getOutputStream();
+                        byte[] publishMessage = constructPublishMessage(retainedTopic, retainedPayload, options);
+                        output.write(publishMessage);
+                        output.flush();
+                    } catch (Exception e) {
+                        System.out.println("Failed to send retained message to subscriber: " + e.getMessage());
+                    }
                 }
             }
+            
 
             if (index >= 2 + remainingLength) {
                 break;

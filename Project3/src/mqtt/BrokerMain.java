@@ -1,6 +1,6 @@
 package Project3.src.mqtt;
 
-public class TestGateway {
+public class BrokerMain {
          
     public static void main(String[] args) {
         try {
