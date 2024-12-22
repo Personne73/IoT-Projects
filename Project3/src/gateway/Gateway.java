@@ -37,7 +37,7 @@ public class Gateway {
             } catch (Exception e) {
                 System.err.println("[ERROR] Failed to fetch or publish data: " + e.getMessage());
             }
-        }, 0, 60, TimeUnit.SECONDS); // Repeat every 10 seconds
+        }, 0, 10, TimeUnit.SECONDS); // Repeat every 10 seconds
     }
 
     public void shutdown() {

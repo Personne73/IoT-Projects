@@ -49,7 +49,7 @@ def publish_to_mqtt(data):
             client_publisher.connect("localhost", 1883)
 
             topic = f"home/temperature/{room}"  # Exemple : home/temperature/kitchen
-            result = client_publisher.publish(topic, mqtt_message)
+            result = client_publisher.publish(topic, mqtt_message, retain=True)
 
             # Vérifiez si la publication a réussi
             if result.rc == mqtt.MQTT_ERR_SUCCESS:
