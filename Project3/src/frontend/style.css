@@ -3,16 +3,28 @@ body {
     background-color: #f4f4f9;
     margin: 0;
     padding: 0;
-    text-align: center;
+    display: grid;
+    grid-template-rows: auto 1fr; /* Header en haut, le reste en dessous */
+    grid-template-columns: 70% 30%; /* Main et Aside */
+    height: 100vh; /* Occuper toute la hauteur de la fenêtre */
+    overflow: hidden;
+}
+
+header {
+    grid-column: span 2; /* Le header occupe toute la largeur */
+    background-color: #fff;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    padding: 10px;
+    text-align: left;
+    font-size: 24px;
+    font-weight: bold;
+    color: #333; 
 }
 
 .container {
-    margin-top: 50px;
     padding: 20px;
-}
-
-h1 {
-    color: #333;
+    background-color: #f4f4f9;
+    overflow-y: auto;
 }
 
 h2 {
@@ -20,17 +32,158 @@ h2 {
     margin-top: 20px;
 }
 
-#temperature-list {
-    list-style-type: none;
-    padding: 0;
-    margin-top: 20px;
+#temperature-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    justify-items: center;
+    margin-top: 30px;
 }
 
-#temperature-list li {
+.temperature-bubble {
     background-color: #fff;
-    padding: 15px;
-    margin: 10px auto;
-    border-radius: 8px;
+    border-radius: 15px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-    max-width: 300px;
+    padding: 20px;
+    width: 150px;
+    height: 150px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+}
+
+.temperature-bubble .temperature {
+    font-size: 36px;
+    color: #007bff;
+}
+
+.temperature-bubble .room-name {
+    font-size: 16px;
+    color: #555;
+    margin-top: 10px;
+}
+
+.side-panel-menu {
+    /* background-color: #fff;
+    padding: 20px;
+    box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1);
+    height: 100%;
+    overflow-y: auto; */
+
+    position: absolute; /* Change de fixed à absolute */
+    top: 0;
+    right: 0;
+    width: 30vw;
+    height: 100vh; /* Prend toute la hauteur */
+    background-color: #fff;
+    padding: 20px;
+    box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1);
+}
+
+.topic-subscription,
+.system-measure {
+    background-color: #f9f9f9;
+    margin-bottom: 20px;
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.topic-subscription h3,
+.system-measure h3 {
+    margin-bottom: 10px;
+}
+
+#topics-list {
+    list-style-type: none;
+    padding: 0;
+}
+
+#topics-list li {
+    background-color: #fff;
+    padding: 10px;
+    margin-bottom: 5px;
+    border-radius: 5px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+#topics-list button {
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+#topics-list button:hover {
+    background-color: #0056b3;
+}
+
+#subscribe-all {
+    margin-top: 10px;
+}
+
+.action-btn {
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.action-btn:hover {
+    background-color: #0056b3;
+}
+
+#response-time {
+    font-size: 16px;
+    color: #333;
+}
+
+#status-list {
+    list-style-type: none;
+    padding: 0;
+}
+
+#status-list li {
+    background-color: #fff;
+    padding: 10px;
+    margin-bottom: 5px;
+    border-radius: 5px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.temperature-bubble .temperature {
+    font-size: 36px;
+    color: #333;
+    transition: color 0.3s ease;
+}
+
+.temperature-hot {
+    color: red;
+}
+
+.temperature-warm {
+    color: orange;
+}
+
+.temperature-normal {
+    color: blue;
+}
+
+.subscribe-btn.unsubscribe {
+    background-color: red;
+    color: #fff;
 }

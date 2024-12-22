@@ -8,13 +8,34 @@
 </head>
 
 <body>
+    <header>
+        <h1>Hi, Joël!</h1>
+    </header>
     <main class="container">
-        <h1>Smart Home Dashboard</h1>
-        <h2>Rooms temperatures</h2>
-        <ul id="temperature-list">
-            <!-- Les températures seront insérées ici dynamiquement -->
-        </ul>
+        <h2>Your rooms' temperatures</h2>
+        <div id="temperature-grid">
+            <!-- Les bulles des températures seront insérées ici dynamiquement -->
+        </div>
     </main>
+    <aside class="side-panel-menu">
+        <div class="topic-subscription">
+            <h3>Topics</h3>
+            <ul id="topics-list">
+                <!-- Les topics seront insérés ici dynamiquement -->
+            </ul>
+            <button id="subscribe-all" class="action-btn">Subscribe to all</button>
+        </div>
+        <div class="system-measure">
+            <h3>Performance</h3>
+            <p id="response-time">Response delay: -- ms</p>
+        </div>
+        <div class="temperature-status">
+            <h3>Temperature Status</h3>
+            <ul id="status-list">
+                <!-- Les statuts seront insérés ici dynamiquement -->
+            </ul>
+        </div>
+    </aside>
     <script src="index.js"></script>
 </body>
 </html>
