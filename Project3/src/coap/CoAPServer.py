@@ -15,7 +15,7 @@ class TemperatureResource(resource.Resource):
     # GET request handler
     async def render_get(self, request):
         # Emulate a random temperature for the room
-        temperature = random.uniform(18.0, 25.0)
+        temperature = random.uniform(18.0, 33.0)
         response = f'{{"room": "{self.room_name}", "temperature": {temperature:.2f}}}'
         print(f"[INFO] Sending temperature data: {response}")
         return Message(payload=response.encode('utf-8'), content_format=50)

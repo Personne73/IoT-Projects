@@ -381,7 +381,7 @@ document.addEventListener("DOMContentLoaded", () => {
         "home/temperature/bathroom"
     ];
 
-    let subscribedTopics = new Set();
+    let subscribedTopics = new Set(topics);
 
     // Fonction pour récupérer les températures depuis l'API
     async function fetchTemperatures() {
@@ -413,16 +413,18 @@ document.addEventListener("DOMContentLoaded", () => {
     function updateTemperatureGrid(temperatures) {
         temperatureGrid.innerHTML = "";
         temperatures.forEach(temp => {
-            const bubble = document.createElement("div");
-            bubble.className = "temperature-bubble";
+            if(subscribedTopics.has(`home/temperature/${temp.room}`)) {
+                const bubble = document.createElement("div");
+                bubble.className = "temperature-bubble";
 
-            // Détermine la couleur de la température
-            const temperatureColor = getTemperatureColor(temp.temperature);
-            bubble.innerHTML = `
-                <div class="temperature" style="color: ${temperatureColor}">${temp.temperature}°C</div>
-                <div class="room-name">${temp.room}</div>
-            `;
-            temperatureGrid.appendChild(bubble);
+                // Détermine la couleur de la température
+                const temperatureColor = getTemperatureColor(temp.temperature);
+                bubble.innerHTML = `
+                    <div class="temperature" style="color: ${temperatureColor}">${temp.temperature}°C</div>
+                    <div class="room-name">${temp.room}</div>
+                `;
+                temperatureGrid.appendChild(bubble);
+            }
         });
     }
 
@@ -441,10 +443,12 @@ document.addEventListener("DOMContentLoaded", () => {
     function updateTemperatureStatus(temperatures) {
         statusList.innerHTML = "";
         temperatures.forEach(temp => {
-            const statusItem = document.createElement("li");
-            const status = temp.temperature > 25 ? "Too Hot" : "Normal";
-            statusItem.textContent = `${temp.room}: ${status}`;
-            statusList.appendChild(statusItem);
+            if (subscribedTopics.has(`home/temperature/${temp.room}`)) {
+                const statusItem = document.createElement("li");
+                const status = temp.temperature > 25 ? "Too Hot" : "Normal";
+                statusItem.textContent = `${temp.room}: ${status}`;
+                statusList.appendChild(statusItem);
+            }
         });
     }
 
@@ -456,12 +460,16 @@ document.addEventListener("DOMContentLoaded", () => {
     // Ajouter les topics dans le menu
     topics.forEach(topic => {
         const listItem = document.createElement("li");
+        const isSubscribed = subscribedTopics.has(topic);
         listItem.innerHTML = `
             <span>${topic}</span>
-            <button class="subscribe-btn" style="background-color: #007bff;">Subscribe</button>
+            <button class="subscribe-btn" style="background-color: ${isSubscribed ? "#ff1900" : "#007bff"};">
+                ${isSubscribed ? "Unsubscribe" : "Subscribe"}
+            </button>
         `;
         topicsList.appendChild(listItem);
     });
+    updateSubscribeAllButton(); // Mettre à jour le texte et la couleur du bouton "Subscribe to all"
 
     // Gérer les abonnements individuels
     topicsList.addEventListener("click", (event) => {
@@ -477,6 +485,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 event.target.style.backgroundColor = "#ff1900"; // Rouge pour Unsubscribe
             }
             updateSubscribeAllButton();
+            fetchTemperatures(); // Rafraîchir les données
         }
     });
 
@@ -499,6 +508,7 @@ document.addEventListener("DOMContentLoaded", () => {
             subscribeAllButton.textContent = "Unsubscribe to all";
             subscribeAllButton.style.backgroundColor = "#ff1900"; // Rouge
         }
+        fetchTemperatures(); // Rafraîchir les données
     });
 
     // Met à jour le texte et la couleur du bouton "Subscribe to all"
