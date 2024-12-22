@@ -81,3 +81,13 @@ Si tu veux des détails sur l'implémentation d'une partie spécifique (comme l'
 
 
 Très bien donc si j'ai bien compris la structure, des capteurs de température émuler envoient des données a un coap server, mon coap client va récuperer ces données, et les transfèrer a un gateway (en l'occurence un mqtt client abonnée a tout les topics), qui va les publish sur mon broker, (c'est en quelque sorte un client publisher). Un autre client représentant l'user va gerer les abonnements selon les intéractions de l'user sur l'interface graphique et va donc susbcribe/unssubscribe au topice afin de recupérer les messages publiés (les différentes températures) puis en fonction de cela les données seront affichés sur le GUI ?
+
+Voici une architecture simplifiée pour le système complet :
+
+CoAP Server (Python) : Génère les données des capteurs.
+Gateway :
+- Partie Java : Récupère les données du CoAP Server et les envoie à la partie Python.
+- Partie Python : Publie les données sur les topics MQTT avec le flag retain.
+MQTT Broker (Java) : Gère les publications et abonnements.
+Backend Python : Abonné aux topics MQTT, expose les données via une API (WebSocket/REST).
+Frontend React.js : Reçoit les données via WebSocket et les affiche.
