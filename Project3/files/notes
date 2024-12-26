@@ -91,3 +91,10 @@ Gateway :
 MQTT Broker (Java) : Gère les publications et abonnements.
 Backend Python : Abonné aux topics MQTT, expose les données via une API (WebSocket/REST).
 Frontend React.js : Reçoit les données via WebSocket et les affiche.
+
+maintenant que le projet est fini, fait moi un fichier bash qui me compile et lance tout les fichiers nécessaire afin de mettre en marche le projet et actualisé le front dans l'ordre suivant : 
+- le CoapServer.py dans src/coap
+- le BrokerMain.java dans src/mqtt
+- le backend du front dans src/backendSubscriber que je lance habituellement avec uvicorn main:app --reload
+- le GatewayPublisher.py dans src/gateway
+- et enfin le Gateway.java dans src/gateway
