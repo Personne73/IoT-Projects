@@ -1,6 +1,6 @@
 body {
     font-family: Arial, sans-serif;
-    background-color: #f4f4f9;
+    background-color: #e8f0fe;
     margin: 0;
     padding: 0;
     display: grid;
@@ -12,23 +12,23 @@ body {
 
 header {
     grid-column: span 2; /* Le header occupe toute la largeur */
-    background-color: #fff;
+    background-color: #007bff;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     padding: 10px;
     text-align: left;
     font-size: 24px;
     font-weight: bold;
-    color: #333; 
+    color: #fff; 
 }
 
 .container {
     padding: 20px;
-    background-color: #f4f4f9;
+    background-color: #e8f0fe;
     overflow-y: auto;
 }
 
 h2 {
-    color: #555;
+    color: #333;
     margin-top: 20px;
 }
 
@@ -41,7 +41,7 @@ h2 {
 }
 
 .temperature-bubble {
-    background-color: #fff;
+    background-color: #ffffff;
     border-radius: 15px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     padding: 20px;
@@ -77,14 +77,14 @@ h2 {
     right: 0;
     width: 30vw;
     height: 100vh; /* Prend toute la hauteur */
-    background-color: #fff;
+    background-color: #f8f9fa;
     padding: 20px;
     box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1);
 }
 
 .topic-subscription,
 .system-measure {
-    background-color: #f9f9f9;
+    background-color: #ffffff;
     margin-bottom: 20px;
     padding: 15px;
     border-radius: 10px;
@@ -93,6 +93,7 @@ h2 {
 
 .topic-subscription h3,
 .system-measure h3 {
+    color: #007bff;
     margin-bottom: 10px;
 }
 
@@ -106,7 +107,7 @@ h2 {
     padding: 10px;
     margin-bottom: 5px;
     border-radius: 5px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -153,11 +154,11 @@ h2 {
 }
 
 #status-list li {
-    background-color: #fff;
+    background-color: #ffffff;
     padding: 10px;
     margin-bottom: 5px;
     border-radius: 5px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -169,21 +170,4 @@ h2 {
     font-size: 36px;
     color: #333;
     transition: color 0.3s ease;
-}
-
-.temperature-hot {
-    color: red;
-}
-
-.temperature-warm {
-    color: orange;
-}
-
-.temperature-normal {
-    color: blue;
-}
-
-.subscribe-btn.unsubscribe {
-    background-color: red;
-    color: #fff;
 }
