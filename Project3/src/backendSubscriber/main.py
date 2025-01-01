@@ -35,3 +35,4 @@ def get_temperature(room: str):
     return {"error": "Room not found"}
 
 # start the backend : uvicorn main:app --reload
+# http://127.0.0.1:8000/api/temperatures

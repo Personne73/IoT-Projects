@@ -273,21 +273,6 @@ public class CoAPClient extends Thread {
             String payload = new String(data, index, length - index);
             System.out.println("Payload: " + payload);
 
-            // // Save data to file
-            // try {
-            //     // Parse le payload pour extraire les données
-            //     String room = extractField(payload, "room");
-            //     String temperatureStr = extractField(payload, "temperature");
-    
-            //     if (room != null && temperatureStr != null) {
-            //         double temperature = Double.parseDouble(temperatureStr);
-            //         // Appel à la méthode DataSaver pour sauvegarder
-            //         DataSaver.saveData(room, temperature);
-            //     }
-            // } catch (Exception e) {
-            //     System.err.println("[ERROR] Failed to parse and save payload data: " + e.getMessage());
-            // }
-
             try {
                 // Parse the payload to extract data
                 String room = extractField(payload, "room");

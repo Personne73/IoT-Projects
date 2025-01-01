@@ -1,32 +1,3 @@
-# import json
-# from paho.mqtt.client import Client
-
-# data_store = []  # Stocke les données reçues du broker MQTT
-
-# def on_connect(client, userdata, flags, rc):
-#     print("[INFO] Connected to MQTT broker")
-#     client.subscribe("home/temperature/#")  # S'abonner à tous les topics de température
-
-# def on_message(client, userdata, msg):
-#     print(f"[INFO] Message received on {msg.topic}: {msg.payload.decode()}")
-#     try:
-#         payload = json.loads(msg.payload.decode())
-#         data_store.append(payload)
-#         # Limiter la taille de la liste
-#         if len(data_store) > 50:
-#             data_store.pop(0)
-#     except json.JSONDecodeError:
-#         print("[ERROR] Failed to parse message payload")
-
-# def start_mqtt_client():
-#     client = Client()
-#     client.on_connect = on_connect
-#     client.on_message = on_message
-#     client.connect("localhost", 1883)  # Adresse et port du broker MQTT
-#     client.loop_start()
-#     return client
-
-
 import paho.mqtt.client as mqtt
 import json
 

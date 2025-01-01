@@ -57,23 +57,3 @@ def publish_to_mqtt(mqtt_client_publisher, data):
 if __name__ == "__main__":
     mqtt_client_publisher = create_mqtt_client()
     start_gateway(mqtt_client_publisher)
-
-# import paho.mqtt.client as mqtt
-
-# def on_publish(client, userdata, mid):
-#     print(f"[INFO] Message published. MID: {mid}")
-
-# client = mqtt.Client(client_id="TestPublisher", protocol=mqtt.MQTTv5)
-# client.on_publish = on_publish
-# client.connect("localhost", 1883)
-
-# topic = "home/temperature/kitchen"
-# message = '{"room": "test", "temperature": 25}'
-# result = client.publish(topic, message, qos=1, retain=True)
-
-# if result.rc == mqtt.MQTT_ERR_SUCCESS:
-#     print(f"[INFO] Message published successfully to {topic}")
-# else:
-#     print(f"[ERROR] Publish failed with code {result.rc}")
-
-# client.disconnect()
