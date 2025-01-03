@@ -1,3 +1,4 @@
 aiocoap==0.4.12
 paho-mqtt==2.1.0
 uvicorn
+fastapi
