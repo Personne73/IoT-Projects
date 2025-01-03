@@ -43,9 +43,6 @@ Ensure the following dependencies are installed :
 
 - Python 3.7+
 - Java 17+
-- Python packages:
-  - `aiocoap`
-  - `paho-mqtt`
 - Additional tools:
   - `uvicorn`
 
@@ -54,15 +51,59 @@ You can install the Python dependencies with :
 pip install -r requirements.txt
 ```
 
+## Setting up a Virtual Environment
+
+It is recommended to use a virtual environment (venv) to manage Python dependencies for this project by following this steps :
+
+   1. Create a virtual envrionment at the root of the project :
+      ```bash
+      python3 -m venv venv
+      ```
+   2. Activate the virtual environment : 
+      - on macOS/linux :
+         ```bash
+         source venv/bin/activate
+         ```
+      - on windows :
+         ```bash
+         venv\Scripts\activate
+         ```
+   3. Install dependencies :
+      ```bash
+      pip install -r requirements.txt
+      ```
+   4. To deactivate the virtual environment when done :
+      ```bash
+      deactive
+      ```
+
 ## Execution
 
-To compile and launch all the components in the correct order, run in different terminal the following files :
+To compile and launch all the components in the correct order, **open multiple terminals, navigate in the appropriate directories, activate the virtual environment for the python file, and run the following files** :
 
 ```bash
-CoapServer.py
-BrokerMain.py
-uvicorn main:app --reload (being in the backendSusbcriber folder)
-GatewayPublisher.py
+source venv/bin/activate
+cd src/coap
+python3 CoapServer.py
+```
+
+```bash
+BrokerMain.java
+```
+
+```bash
+source venv/bin/activate
+cd src/backendSubscriber/
+uvicorn main:app --reload
+```
+
+```bash
+source venv/bin/activate
+cd src/gateway/
+python GatewayPublisher.py
+```
+
+```bash
 Gateway.java
 ```
 
@@ -82,10 +123,8 @@ Gateway.java
 ### Accessing the Dashboard
 
 Once the system is up and running, open your browser and navigate to :
-```
-the index.html
-http://127.0.0.1:8000/api/temperatures
-```
+- `index.html`
+- API endpoint : http://127.0.0.1:8000/api/temperatures
 
 ## Features
 
